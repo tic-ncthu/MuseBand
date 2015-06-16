@@ -1,0 +1,35 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 21
+    buildToolsVersion "21.1.2"
+    defaultConfig {
+        applicationId "com.example.andytic"
+        minSdkVersion 9
+        targetSdkVersion 21
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    repositories {
+        flatDir {
+            dirs 'aars'
+        }
+    }
+    productFlavors {
+    }
+}
+
+dependencies {
+    compile 'com.google.code.gson:gson:2.3'
+    compile 'com.google.guava:guava:18.0'
+    compile 'com.microsoft.azure:azure-mobile-services-android-sdk:2.0.2'
+    compile 'com.microsoft.azure:azure-notifications-handler:1.0.1@jar'
+    compile 'com.google.android.gms:play-services:7.5.0'
+    provided fileTree(dir: 'libs', include: ['*.jar'])
+}
