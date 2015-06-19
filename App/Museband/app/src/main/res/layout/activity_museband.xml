@@ -1,7 +1,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="fill_parent"
-    android:layout_height="fill_parent">
+    android:layout_height="fill_parent"
+    >
 
     <fragment
         android:id="@+id/map" tools:context=".Museband"
@@ -13,16 +14,6 @@
         android:layout_alignParentStart="true"
         android:layout_above="@+id/boxLa"
         android:layout_below="@+id/switchGPS" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="GO!"
-        android:id="@+id/go"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        android:layout_alignTop="@+id/latitude" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -44,37 +35,42 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true" />
 
-    <EditText
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/boxLa"
-        android:numeric="decimal"
-        android:layout_alignBottom="@+id/latitude"
-        android:layout_toRightOf="@+id/latitude"
-        android:layout_toLeftOf="@+id/go"
-        android:layout_toStartOf="@+id/go"
-        android:text="0" />
 
-    <EditText
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/boxLo"
-        android:numeric="decimal"
-        android:layout_below="@+id/boxLa"
-        android:layout_toRightOf="@+id/longitude"
-        android:layout_alignRight="@+id/boxLa"
-        android:layout_alignEnd="@+id/boxLa"
-        android:text="0" />
 
     <Switch
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="GPS "
+        android:text="GPS: "
         android:id="@+id/switchGPS"
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
         android:checked="false"
         android:textSize="30sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:id="@+id/boxLa"
+        android:layout_above="@+id/longitude"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignTop="@+id/latitude"
+        android:layout_toRightOf="@+id/latitude"
+        android:layout_toEndOf="@+id/latitude" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:id="@+id/boxLo"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_toRightOf="@+id/longitude"
+        android:layout_toEndOf="@+id/longitude"
+        android:layout_below="@+id/latitude"
+        android:layout_alignParentBottom="true" />
+
 
 </RelativeLayout>
