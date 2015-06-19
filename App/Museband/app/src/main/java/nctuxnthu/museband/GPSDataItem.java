@@ -16,4 +16,9 @@ public class GPSDataItem {
     @com.google.gson.annotations.SerializedName("longtitude")
     public Number gps_longtitude;
 
+    public GPSDataItem(){
+        gps_status = "0";
+        gps_latitude = 0;
+        gps_longtitude = 0;
+    }
 }

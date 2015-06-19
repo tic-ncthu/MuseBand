@@ -32,9 +32,11 @@ public class Museband extends FragmentActivity {
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     private String MusebandId;
+    private EditText boxId;
     private TextView boxLa;
     private TextView boxLo;
     private Switch switchGPS;
+    private boolean valid;
 
     public static MobileServiceClient mClient;
 
@@ -43,7 +45,7 @@ public class Museband extends FragmentActivity {
      */
     private MobileServiceTable<GPSDataItem> GPSTable;
 
-    private GPSDataItem gpsItem = new GPSDataItem();;
+    private GPSDataItem gpsItem = new GPSDataItem();
 
     public static final String PROJECT_ID = "269342721";
     //private TextView textBox;
@@ -56,7 +58,7 @@ public class Museband extends FragmentActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_museband);
         Log.d("Print", "oncreate");
-        MusebandId = "test1";
+        boxId = (EditText)findViewById(R.id.boxId);
         boxLa = (TextView)findViewById(R.id.boxLa);
         boxLo = (TextView)findViewById(R.id.boxLo);
 //        btnGo = (Button)findViewById(R.id.go);
@@ -109,34 +111,16 @@ public class Museband extends FragmentActivity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     Log.d("Print", "ischeck");
+                    MusebandId = boxId.getText().toString();
                     getGPSDataItem();
-                    gpsItem.gps_status = "1";
-                    updateGPSDataItem();
-                    boxLa.setText(gpsItem.gps_latitude.toString());
-                    boxLo.setText(gpsItem.gps_longtitude.toString());
-/*
-                    setUpMapIfNeeded();
-                    if (mMap != null) {
-                        //setUpMap(gpsItem.gps_latitude, gpsItem.gps_longtitude);
-                        setUpMap((double) gpsItem.gps_latitude, (double) gpsItem.gps_longtitude);
-                    }
 
-/*
-                  btnGo.setOnClickListener(new View.OnClickListener() {
-   1                     public void onClick(View v) {
-                            latitude = Double.parseDouble(boxLa.getText().toString());
-                            longitude = Double.parseDouble(boxLo.getText().toString());
-                            if (mMap != null) {
-                                setUpMap(latitude, longitude);
-                            }
-                        }
-                    });
-*/
                 } else {
-                    getGPSDataItem();
-                    gpsItem.gps_status = "0";
-                    updateGPSDataItem();
-
+                    boxLa.setText("");
+                    boxLo.setText("");
+                    if(valid){
+                        gpsItem.gps_status = "0";
+                        updateGPSDataItem();
+                    }
                     mMap = null;
                 }
             }
@@ -159,10 +143,10 @@ public class Museband extends FragmentActivity {
      * <p/>
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
-    private void setUpMap(double latitude, double longitude) {
-        LatLng place = new LatLng(latitude,longitude);
+    private void setUpMap(Number latitude, Number longitude) {
+        LatLng place = new LatLng(latitude.doubleValue(),longitude.doubleValue());
         moveMap(place);
-        addMarker(place, "Hello");
+        addMarker(place, MusebandId);
     }
 
     private void moveMap(LatLng place){
@@ -219,24 +203,53 @@ public class Museband extends FragmentActivity {
      */
     private void getGPSDataItem() {
 
-        new AsyncTask<Void, Void, Void>(){
+        new LoadGPSinBackground(){
             @Override
             protected Void doInBackground(Void... params) {
                 try {
+
                     Log.d("Print", "getItem");
                     final GPSDataItem item = GPSTable.lookUp(MusebandId).get();
-                    Log.d("Print", "itemget");
+                    if (item == null){
+                        valid = false;
+                        switchGPS.setChecked(false);
+                        return null;
+                    }
+                    else{
+                        valid = true;
+                    }
+                    Log.d("Print", "Itemget");
+                    Log.d("Print", "id: " + item.gps_Id);
+                    Log.d("Print", "latitude: " + item.gps_latitude);
+                    Log.d("Print", "longitude: " + item.gps_longtitude);
+                    gpsItem.gps_Id = item.gps_Id;
+                    gpsItem.gps_status = "1";
+                    gpsItem.gps_latitude = item.gps_latitude;
+                    gpsItem.gps_longtitude = item.gps_longtitude;
 
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Log.d("Print", "id" + item.gps_Id);
+                            Log.d("Print", "set location");
+                            boxLa.setText(gpsItem.gps_latitude.toString());
+                            boxLo.setText(gpsItem.gps_longtitude.toString());
+                            Log.d("Print", "set location done");
+
+                            setUpMapIfNeeded();
+                            if (mMap != null) {
+                                setUpMap(gpsItem.gps_latitude, gpsItem.gps_longtitude);
+                            }
                         }
                     });
                 } catch (Exception exception) {
                     createAndShowDialog(exception, "Error");
                 }
                 return null;
+            }
+            protected void onPostExecute(Void unused){
+                if(valid){
+                    updateGPSDataItem();
+                }
             }
         }.execute();
     }
@@ -246,7 +259,10 @@ public class Museband extends FragmentActivity {
             @Override
             protected Void doInBackground(Void... params) {
                 try {
+                    Log.d("Print", "update");
                     GPSTable.update(gpsItem).get();
+                    Log.d("Print", "updata done");
+
                 } catch (Exception e) {
                     createAndShowDialog(e, "Error");
                 }
@@ -254,5 +270,6 @@ public class Museband extends FragmentActivity {
             }
         }.execute();
     }
+
 }
 
