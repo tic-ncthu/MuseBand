@@ -5,7 +5,7 @@ import android.os.AsyncTask;
 /**
  * Created by ¨äÝÂ on 2015/6/20.
  */
-public class LoadGPSinBackground extends AsyncTask<Void, Void, Void>{
+public class LoadGPSAsyncTask extends AsyncTask<Void, Void, Void>{
     @Override
     protected Void doInBackground(Void... unused){
 

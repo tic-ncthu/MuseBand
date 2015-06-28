@@ -1,6 +1,8 @@
 package nctuxnthu.museband;
 
 import android.app.AlertDialog;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -15,20 +17,27 @@ import android.widget.TextView;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.wearable.DataItem;
 import com.microsoft.windowsazure.mobileservices.MobileServiceClient;
+import com.microsoft.windowsazure.mobileservices.MobileServiceList;
 import com.microsoft.windowsazure.mobileservices.http.ServiceFilterResponse;
 import com.microsoft.windowsazure.mobileservices.table.MobileServiceTable;
 import com.microsoft.windowsazure.mobileservices.table.TableOperationCallback;
 import com.microsoft.windowsazure.notifications.NotificationsManager;
 
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
 
 public class Museband extends FragmentActivity {
+
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     private String MusebandId;
@@ -45,7 +54,11 @@ public class Museband extends FragmentActivity {
      */
     private MobileServiceTable<GPSDataItem> GPSTable;
 
+    private MobileServiceTable<FacilityDataItem> FacilityTable;
+
     private GPSDataItem gpsItem = new GPSDataItem();
+
+    private FacilityDataItem facilityItem = new FacilityDataItem();
 
     public static final String PROJECT_ID = "269342721";
     //private TextView textBox;
@@ -58,17 +71,32 @@ public class Museband extends FragmentActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_museband);
         Log.d("Print", "oncreate");
+        MusebandId = null;
+        valid = false;
         boxId = (EditText)findViewById(R.id.boxId);
         boxLa = (TextView)findViewById(R.id.boxLa);
         boxLo = (TextView)findViewById(R.id.boxLo);
 //        btnGo = (Button)findViewById(R.id.go);
         switchGPS = (Switch) findViewById(R.id.switchGPS);
-/*
-            setUpMapIfNeeded();
-                if (mMap != null) {
-                setUpMap(0, 0);
-            }
-*/
+
+        setUpMapIfNeeded();
+        if (mMap != null) {
+            //setUpMap(0, 0);
+            getFacilityItem();
+        }
+
+
+        LatLng place = new LatLng(24.786167 , 120.966778);
+        moveMap(place);
+        MarkerOptions markerOptions = new MarkerOptions();
+        markerOptions.position(place)
+                .title("f1")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
+                /*.icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(),
+                        R.drawable.facility)));*/
+
+        //mMap.addMarker(markerOptions);
+
         try {
             // Create the Mobile Service Client instance, using the provided
             // Mobile Service URL and key
@@ -76,27 +104,11 @@ public class Museband extends FragmentActivity {
                     "https://andytic.azure-mobile.net/",
                     "pVEkAZkXlQVEWgPYRxnoZeEfBwNlvQ43",
                     this);
+            GPSTable = mClient.getTable(GPSDataItem.class);
+            FacilityTable = mClient.getTable(FacilityDataItem.class);
 
             NotificationsManager.handleNotifications(this, PROJECT_ID, MyPushNotificationsHandler.class);
-            GPSTable = mClient.getTable(GPSDataItem.class);
 
-/*
-            gpsItem.gps_Id = "test1";
-            gpsItem.gps_status = "0";
-            gpsItem.gps_longtitude = 120.966778;
-            gpsItem.gps_latitude = 24.786167;
-
-/*
-           GPSTable.insert(gpsItem, new TableOperationCallback<GPSDataItem>() {
-                @Override
-                public void onCompleted(GPSDataItem entity, Exception exception, ServiceFilterResponse response) {
-                    if (exception == null) ;
-                        // Success
-                    else ;
-                    // Failed
-                }
-            });
-*/
         } catch (MalformedURLException e) {
             createAndShowDialog(new Exception("There was an error creating the Mobile Service. Verify the URL"), "Error");
         }
@@ -111,17 +123,19 @@ public class Museband extends FragmentActivity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     Log.d("Print", "ischeck");
-                    MusebandId = boxId.getText().toString();
+                    if (MusebandId == null) {
+                        MusebandId = boxId.getText().toString();
+                    }
                     getGPSDataItem();
-
                 } else {
                     boxLa.setText("");
                     boxLo.setText("");
-                    if(valid){
+                    if (valid) {
                         gpsItem.gps_status = "0";
                         updateGPSDataItem();
                     }
-                    mMap = null;
+                    MusebandId = null;
+                    //mMap = null;
                 }
             }
         });
@@ -146,7 +160,8 @@ public class Museband extends FragmentActivity {
     private void setUpMap(Number latitude, Number longitude) {
         LatLng place = new LatLng(latitude.doubleValue(),longitude.doubleValue());
         moveMap(place);
-        addMarker(place, MusebandId);
+        //addMarker(place, MusebandId);
+        addMarker(place, "You are Here!");
     }
 
     private void moveMap(LatLng place){
@@ -203,21 +218,13 @@ public class Museband extends FragmentActivity {
      */
     private void getGPSDataItem() {
 
-        new LoadGPSinBackground(){
+        new LoadGPSAsyncTask(){
             @Override
             protected Void doInBackground(Void... params) {
                 try {
-
-                    Log.d("Print", "getItem");
+                    Log.d("Print", "getItem: ");
                     final GPSDataItem item = GPSTable.lookUp(MusebandId).get();
-                    if (item == null){
-                        valid = false;
-                        switchGPS.setChecked(false);
-                        return null;
-                    }
-                    else{
-                        valid = true;
-                    }
+                    valid = true;
                     Log.d("Print", "Itemget");
                     Log.d("Print", "id: " + item.gps_Id);
                     Log.d("Print", "latitude: " + item.gps_latitude);
@@ -227,28 +234,27 @@ public class Museband extends FragmentActivity {
                     gpsItem.gps_latitude = item.gps_latitude;
                     gpsItem.gps_longtitude = item.gps_longtitude;
 
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Log.d("Print", "set location");
-                            boxLa.setText(gpsItem.gps_latitude.toString());
-                            boxLo.setText(gpsItem.gps_longtitude.toString());
-                            Log.d("Print", "set location done");
-
-                            setUpMapIfNeeded();
-                            if (mMap != null) {
-                                setUpMap(gpsItem.gps_latitude, gpsItem.gps_longtitude);
-                            }
-                        }
-                    });
                 } catch (Exception exception) {
-                    createAndShowDialog(exception, "Error");
+                    //createAndShowDialog(exception, "Error");
+                    valid = false;
+                    Log.d("Print", "Item not found");
                 }
                 return null;
             }
             protected void onPostExecute(Void unused){
-                if(valid){
-                    updateGPSDataItem();
+                if (!valid){
+                    switchGPS.setChecked(false);
+                }
+                else{
+                    Log.d("Print", "set location");
+                    boxLa.setText(gpsItem.gps_latitude.toString());
+                    boxLo.setText(gpsItem.gps_longtitude.toString());
+                    Log.d("Print", "set location done");
+
+                    setUpMapIfNeeded();
+                    if (mMap != null) {
+                        setUpMap(gpsItem.gps_latitude, gpsItem.gps_longtitude);
+                    }
                 }
             }
         }.execute();
@@ -267,6 +273,43 @@ public class Museband extends FragmentActivity {
                     createAndShowDialog(e, "Error");
                 }
                 return null;
+            }
+        }.execute();
+    }
+
+    public void getFacilityItem() {
+        new AsyncTask<Void,Void,Void>(){
+            @Override
+            protected Void doInBackground(Void... params){
+                try {
+                    Log.d("Print", "setupFacilities");
+                    //final List<FacilityDataItem> results = FacilityTable.execute().get();
+                    final FacilityDataItem item = FacilityTable.lookUp("fatAndy").get();
+                    Log.d("Print", "FacilityListGet ");
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            //for (FacilityDataItem item : results) {
+                                if(mMap != null){
+                                    LatLng place = new LatLng(item.latitude.doubleValue(),item.longtitude.doubleValue());
+                                    String title = facilityItem.Id;
+                                    MarkerOptions markerOptions = new MarkerOptions();
+                                    markerOptions.position(place)
+                                            .title(title);
+                                    mMap.addMarker(markerOptions);
+                                    moveMap(place);
+                                }
+                            //}
+                        }
+                    });
+                } catch (Exception exception) {
+                    //createAndShowDialog(exception, "Error");
+                    Log.d("Print", "Facility setup error");
+                }
+                return null;
+            }
+            protected void onPostExecute(Void unused){
+
             }
         }.execute();
     }
